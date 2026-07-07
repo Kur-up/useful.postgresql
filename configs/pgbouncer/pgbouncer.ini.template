@@ -16,7 +16,7 @@ ${POSTGRESQL_DB} = host=postgresql port=5432 dbname=${POSTGRESQL_DB}
 # Network
 # ---------------------------------------------------------------------------
 listen_addr = 0.0.0.0
-listen_port = ${PGBOUNCER_PORT}
+listen_port = 6432
 ; unix socket disabled — TCP only
 unix_socket_dir =
 

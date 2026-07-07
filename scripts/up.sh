@@ -29,7 +29,7 @@ if [[ ! -f configs/pgbouncer/pgbouncer.ini ]]; then
   echo "Generating configs/pgbouncer/pgbouncer.ini..."
   envsubst \
     '${POSTGRESQL_DB} ${POSTGRESQL_USER}
-     ${PGBOUNCER_PORT} ${PGBOUNCER_POOL_MODE}
+     ${PGBOUNCER_POOL_MODE}
      ${PGBOUNCER_MAX_CLIENT_CONN} ${PGBOUNCER_DEFAULT_POOL_SIZE}
      ${PGBOUNCER_MIN_POOL_SIZE} ${PGBOUNCER_RESERVE_POOL_SIZE}
      ${PGBOUNCER_RESERVE_POOL_TIMEOUT} ${PGBOUNCER_TLS_SSLMODE}' \
