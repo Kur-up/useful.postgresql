@@ -1,0 +1,112 @@
+services:
+  postgresql:
+    image: dhi.io/postgres:18.4
+    container_name: infrastructure.postgresql
+    restart: unless-stopped
+    stop_grace_period: 60s
+    read_only: true
+    shm_size: "512mb"
+
+    environment:
+      POSTGRES_DB:       ${POSTGRESQL_DB}
+      POSTGRES_USER:     ${POSTGRESQL_USER}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASSWORD}
+      PGDATA:            /var/lib/postgresql/data
+
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+      - ./configs/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./init:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - internal
+
+    deploy:
+      resources:
+        limits:
+          cpus:   "${POSTGRESQL_CPUS}"
+          memory: ${POSTGRESQL_MEMORY}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U ${POSTGRESQL_USER} -d ${POSTGRESQL_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+    expose:
+      - "5432"
+
+    command:
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/pg_hba.conf"
+
+  pgbouncer:
+    image: dhi.io/pgbouncer:1.25.2
+    container_name: infrastructure.pgbouncer
+    restart: unless-stopped
+    stop_grace_period: 30s
+    read_only: true
+
+    volumes:
+      - ./configs/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./configs/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      - ./configs/pgbouncer/hba.conf:/etc/pgbouncer/hba.conf:ro
+      - ./configs/pgbouncer/tls/ca.crt:/etc/pgbouncer/tls/ca.crt:ro
+      - ./configs/pgbouncer/tls/server.crt:/etc/pgbouncer/tls/server.crt:ro
+      - ./configs/pgbouncer/tls/server.key:/etc/pgbouncer/tls/server.key:ro
+
+    networks:
+      - internal
+
+    deploy:
+      resources:
+        limits:
+          cpus:   "${PGBOUNCER_CPUS}"
+          memory: ${PGBOUNCER_MEMORY}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    ports:
+      - "${PGBOUNCER_PORT}:6432"
+
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+    name: infrastructure.postgresql

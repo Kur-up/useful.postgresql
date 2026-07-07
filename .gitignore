@@ -1,0 +1,5 @@
+data/postgresql/
+.env
+configs/pgbouncer/userlist.txt
+configs/pgbouncer/pgbouncer.ini
+configs/pgbouncer/tls/*.key

@@ -1,0 +1,74 @@
+# =============================================================================
+# PgBouncer configuration template.
+# Variables (${...}) are substituted from .env by scripts/up.sh on first run.
+# To apply changes: delete configs/pgbouncer/pgbouncer.ini and re-run up.sh.
+#
+# NOTE: PgBouncer does not support inline comments after values.
+#       All comments must be on their own line starting with ; or #
+# =============================================================================
+
+[databases]
+# Route the application database to PostgreSQL via the Docker internal network.
+${POSTGRESQL_DB} = host=postgresql port=5432 dbname=${POSTGRESQL_DB}
+
+[pgbouncer]
+# ---------------------------------------------------------------------------
+# Network
+# ---------------------------------------------------------------------------
+listen_addr = 0.0.0.0
+listen_port = ${PGBOUNCER_PORT}
+; unix socket disabled — TCP only
+unix_socket_dir =
+
+; log to stdout — collected by the Docker json-file logging driver
+logfile =
+; no pidfile needed in a container
+pidfile =
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+; auth_type = hba uses auth_hba_file for per-IP/user rules (allows IP whitelisting).
+; The hba file still delegates password verification to scram-sha-256 via auth_file.
+auth_type     = hba
+auth_hba_file = /etc/pgbouncer/hba.conf
+auth_file     = /etc/pgbouncer/userlist.txt
+
+# ---------------------------------------------------------------------------
+# Connection pooling
+# ---------------------------------------------------------------------------
+pool_mode            = ${PGBOUNCER_POOL_MODE}
+max_client_conn      = ${PGBOUNCER_MAX_CLIENT_CONN}
+default_pool_size    = ${PGBOUNCER_DEFAULT_POOL_SIZE}
+min_pool_size        = ${PGBOUNCER_MIN_POOL_SIZE}
+reserve_pool_size    = ${PGBOUNCER_RESERVE_POOL_SIZE}
+reserve_pool_timeout = ${PGBOUNCER_RESERVE_POOL_TIMEOUT}
+
+; Required in transaction pooling mode to clean up session state between reuses.
+server_reset_query = DISCARD ALL
+
+; Suppress startup warnings from JDBC drivers and some ORMs.
+ignore_startup_parameters = extra_float_digits
+
+# ---------------------------------------------------------------------------
+# TLS — client to PgBouncer
+# PgBouncer to PostgreSQL uses the Docker internal network (no TLS needed).
+# ---------------------------------------------------------------------------
+client_tls_sslmode   = ${PGBOUNCER_TLS_SSLMODE}
+client_tls_key_file  = /etc/pgbouncer/tls/server.key
+client_tls_cert_file = /etc/pgbouncer/tls/server.crt
+client_tls_ca_file   = /etc/pgbouncer/tls/ca.crt
+
+# ---------------------------------------------------------------------------
+# Admin / stats (connect to the virtual database named "pgbouncer")
+# ---------------------------------------------------------------------------
+admin_users = ${POSTGRESQL_USER}
+stats_users = ${POSTGRESQL_USER}
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+log_connections    = 1
+log_disconnections = 1
+log_stats          = 1
+stats_period       = 60
