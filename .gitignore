@@ -1,5 +1,9 @@
 data/postgresql/
+runtime/
 .env
 configs/pgbouncer/userlist.txt
 configs/pgbouncer/pgbouncer.ini
 configs/pgbouncer/tls/
+extensions/*.control
+extensions/*.sql
+extensions/lib/*.so

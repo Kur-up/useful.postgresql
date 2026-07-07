@@ -18,7 +18,8 @@ services:
       - ./configs/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./configs/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
       - ./init:/docker-entrypoint-initdb.d:ro
-      - ./extensions:/etc/postgresql/extensions:ro
+      - ./runtime/lib:/opt/postgresql/18/lib
+      - ./runtime/ext:/opt/postgresql/18/share/extension
 
     networks:
       - internal

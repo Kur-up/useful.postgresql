@@ -42,4 +42,16 @@ fi
 mkdir -p data/postgresql
 chown 70:70 data/postgresql
 
+if [[ ! -f runtime/.initialized ]]; then
+  echo "Initializing runtime/ from PostgreSQL image (first run)..."
+  PG_IMAGE=$(awk '/image:/{img=$2} /postgresql:/{found=1} found && /image:/{print img; exit}' docker-compose.yml)
+  TEMP=$(docker create "$PG_IMAGE")
+  mkdir -p runtime/lib runtime/ext
+  docker cp "${TEMP}:/opt/postgresql/18/lib/."            runtime/lib/
+  docker cp "${TEMP}:/opt/postgresql/18/share/extension/." runtime/ext/
+  docker rm "$TEMP"
+  touch runtime/.initialized
+  chown -R 70:70 runtime/
+fi
+
 docker compose up -d "$@"
