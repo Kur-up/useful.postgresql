@@ -82,6 +82,11 @@ After the first run you will be prompted for the **server CN** — the hostname 
 ├── data/
 │   └── postgresql/               # PostgreSQL data directory — git-ignored
 │
+├── extensions/                   # third-party PostgreSQL extensions (persisted via bind mount)
+│   ├── lib/                      # compiled .so shared libraries
+│   ├── *.control                 # extension metadata files
+│   └── *--*.sql                  # extension SQL scripts
+│
 ├── init/                         # SQL/shell scripts run once on first init
 │
 └── scripts/
@@ -160,6 +165,79 @@ The `ca.crt` file (`configs/pgbouncer/tls/ca.crt`) must be distributed to client
 - Host: `<server-ip>`, Port: `6432`
 - Database: value of `POSTGRESQL_DB`
 - SSL mode: **Require** (or **Verify CA** if you import `ca.crt`)
+
+## Extensions
+
+PostgreSQL 18 supports `extension_control_path` and `dynamic_library_path`, which let you add third-party extensions without building a custom image. Extension files are placed on the **host** in the `extensions/` directory and mounted read-only into the container.
+
+```
+extensions/
+├── lib/          ← compiled .so shared libraries
+├── foo.control   ← extension metadata
+├── foo--1.0.sql  ← extension SQL script
+└── ...
+```
+
+### Installing an extension
+
+#### Step 1 — get the extension files
+
+Most extensions can be downloaded as pre-compiled packages from the vendor or extracted from an official package. For example, for `pgvector`:
+
+```bash
+# Example: extract files from a Debian package without installing it
+apt-get download postgresql-18-pgvector
+dpkg-deb -x postgresql-18-pgvector_*.deb /tmp/pgvector
+
+# Copy the shared library
+cp /tmp/pgvector/usr/lib/postgresql/18/lib/vector.so extensions/lib/
+
+# Copy the control and SQL files
+cp /tmp/pgvector/usr/share/postgresql/18/extension/vector.control extensions/
+cp /tmp/pgvector/usr/share/postgresql/18/extension/vector--*.sql   extensions/
+```
+
+> The exact paths inside a Debian package depend on the package. Adjust accordingly.
+
+#### Step 2 — reload PostgreSQL
+
+If the extension does **not** require `shared_preload_libraries`:
+
+```bash
+docker compose exec postgresql psql -U <POSTGRESQL_USER> -c "SELECT pg_reload_conf();"
+```
+
+If the extension **does** require `shared_preload_libraries` (e.g. `timescaledb`), add it to `postgresql.conf` first:
+
+```
+shared_preload_libraries = 'timescaledb'
+```
+
+Then restart:
+
+```bash
+docker compose restart postgresql
+```
+
+#### Step 3 — create the extension
+
+```bash
+docker compose exec postgresql psql -U <POSTGRESQL_USER> -d <POSTGRESQL_DB> \
+  -c "CREATE EXTENSION IF NOT EXISTS <extension_name>;"
+```
+
+### Persistence
+
+Extension files live in `extensions/` on the host — they survive `docker compose down && up` automatically since they are a bind mount, not part of the container image.
+
+### Verifying available extensions
+
+```bash
+# List extensions PostgreSQL can see
+docker compose exec postgresql psql -U <POSTGRESQL_USER> -c "SELECT * FROM pg_available_extensions ORDER BY name;"
+```
+
+---
 
 ## Day-2 Operations
 
