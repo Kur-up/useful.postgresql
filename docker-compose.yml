@@ -1,8 +1,8 @@
 services:
   postgresql:
     image: dhi.io/postgres:18.4
-    container_name: infrastructure.postgresql
-    restart: unless-stopped
+    container_name: postgresql
+    restart: always
     stop_grace_period: 60s
     read_only: true
     shm_size: "512mb"
@@ -64,8 +64,8 @@ services:
 
   pgbouncer:
     image: dhi.io/pgbouncer:1.25.2
-    container_name: infrastructure.pgbouncer
-    restart: unless-stopped
+    container_name: pgbouncer
+    restart: always
     stop_grace_period: 30s
     read_only: true
 
@@ -79,6 +79,7 @@ services:
 
     networks:
       - internal
+      - external
 
     deploy:
       resources:
@@ -109,4 +110,7 @@ networks:
   internal:
     driver: bridge
     internal: true
-    name: infrastructure.postgresql
+    name: postgresql.internal
+  external:
+    driver: bridge
+    name: postgresql.external
